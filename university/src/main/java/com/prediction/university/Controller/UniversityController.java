@@ -1,9 +1,11 @@
 package com.prediction.university.Controller;
 
 
+import com.prediction.university.DTO.CerDTO;
 import com.prediction.university.DTO.MajorDTO;
 import com.prediction.university.DTO.UniversityDTO;
 
+import com.prediction.university.Entity.Certification;
 import com.prediction.university.Service.UniversityService.UniversityService;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,5 +29,10 @@ public class UniversityController {
     @GetMapping("/major")
     public List<MajorDTO> getMajor(@RequestParam String universityDTO) {
         return universityService.major(universityDTO);
+    }
+
+    @GetMapping("/certification")
+    public List<CerDTO> getCertification() {
+        return universityService.certification();
     }
 }
