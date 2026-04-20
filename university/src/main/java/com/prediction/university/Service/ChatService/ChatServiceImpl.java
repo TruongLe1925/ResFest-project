@@ -36,6 +36,7 @@ public class ChatServiceImpl implements ChatService {
                         "- Điểm đánh giá năng lực(0 điểm là không thi): %d \n" +
                         "-Chứng chỉ: %s\n"+
                         "-Điểm Chứng chỉ: %.2f\n"+
+                        "-Điểm học bạ: %.2f\n\n" +
                         "### YÊU CẦU:\n" +
                         "1. So sánh điểm của tôi với điểm chuẩn năm trước.\n" +
                         "2. Kiểm tra hình ảnh bảng điểm đính kèm để xác thực điểm số (nếu có).\n" +
@@ -48,7 +49,8 @@ public class ChatServiceImpl implements ChatService {
                 university.getAverageAdmissionScore(),
                 requestDTO.getCompetencyAssessmentScore() != null ? requestDTO.getCompetencyAssessmentScore() : 0,
                 requestDTO.getCertificateType(),
-                requestDTO.getCertificateScore()
+                requestDTO.getCertificateScore() != null ? requestDTO.getCertificateScore() : 0,
+                requestDTO.getTranscriptScores() != null ? requestDTO.getTranscriptScores() : 0
         );
         String systemMessage = "Bạn là một chuyên gia tư vấn tuyển sinh ở Việt Nam và ở Việt Nam hãy đưa ra nhận xét và cho thêm gợi ý ngành hoặc trường khác nếu % đậu thấp";
         if(file != null) {
