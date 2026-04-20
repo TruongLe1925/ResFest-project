@@ -29,4 +29,8 @@ public class AdmissionPredictRequestDTO {
     private String certificateType;
     @Min(value = 0, message = "Điểm chứng chỉ không được nhỏ hơn 0")
     private Double certificateScore;
+    @Min(value = 0, message = "Điểm học bạ nhỏ nhất là 0")
+    @Max(value = 10, message = "Điểm học bạ toi đa là 10")
+    private Double transcriptScores;
+
 }
