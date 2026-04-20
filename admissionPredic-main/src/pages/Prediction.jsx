@@ -15,7 +15,14 @@ import '../pages/Prediction.css';
 const Prediction = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({ score: '', targetUniversity: '', major: '' });
+  const [formData, setFormData] = useState({
+    score: '',
+    targetUniversity: '',
+    major: '',
+    competencyAssessmentScore: '',
+    certificateType: '',
+    certificateScore: '',
+  });
   const [universityLocked, setUniversityLocked] = useState(false);
   const [transcriptPreview, setTranscriptPreview] = useState('');
   const [transcriptFile, setTranscriptFile] = useState(null);
@@ -35,6 +42,9 @@ const Prediction = () => {
     majorsLoading,
     majorsError,
     fetchMajorsForUniversity,
+    certificates,
+    certificatesLoading,
+    certificatesError,
   } = usePredict();
 
   const selectedUniversityData = universitiesMap[formData.targetUniversity];
@@ -48,12 +58,59 @@ const Prediction = () => {
       return;
     }
 
-    makePrediction(
-      parseFloat(formData.score),
-      formData.targetUniversity,
-      transcriptFile,
-      formData.major
-    );
+    // Validate university
+    const universityName = formData.targetUniversity?.trim();
+    if (!universityName) {
+      window.alert('Please select a university');
+      return;
+    }
+
+    // Validate and parse exam score
+    const examScore = parseFloat(formData.score);
+    if (isNaN(examScore) || examScore < 0 || examScore > 30) {
+      window.alert('Please enter a valid exam score (0-30)');
+      return;
+    }
+
+    // Validate major
+    const majorName = formData.major?.trim();
+    if (!majorName) {
+      window.alert('Please select a major');
+      return;
+    }
+
+    // Validate and parse competency assessment score
+    const competencyAssessmentScore = parseInt(formData.competencyAssessmentScore, 10);
+    if (isNaN(competencyAssessmentScore) || competencyAssessmentScore < 0 || competencyAssessmentScore > 1200) {
+      window.alert('Please enter a valid competency assessment score (0-1200)');
+      return;
+    }
+
+    // Validate certificate type (strict: not empty and not "Select...")
+    const certificateType = formData.certificateType?.trim();
+    if (!certificateType || certificateType === 'Select...' || certificateType === '') {
+      window.alert('Please select a valid certificate type');
+      return;
+    }
+
+    // Validate and parse certificate score
+    const certificateScore = parseFloat(formData.certificateScore);
+    if (isNaN(certificateScore) || certificateScore < 0) {
+      window.alert('Please enter a valid certificate score');
+      return;
+    }
+
+    // All validations passed, create payload
+    const payload = {
+      universityName,
+      examScore,
+      majorName,
+      competencyAssessmentScore,
+      certificateType,
+      certificateScore,
+    };
+
+    makePrediction(payload, transcriptFile);
   };
 
   const handleChange = (e) => {
@@ -82,6 +139,32 @@ const Prediction = () => {
     setTranscriptPreview(URL.createObjectURL(file));
     setTranscriptFile(file);
     await uploadTranscriptFile(file);
+  };
+
+  const isFormValid = () => {
+    // Check university
+    if (!formData.targetUniversity?.trim()) return false;
+
+    // Check exam score is valid number
+    const examScore = parseFloat(formData.score);
+    if (isNaN(examScore) || examScore < 0 || examScore > 30) return false;
+
+    // Check major
+    if (!formData.major?.trim()) return false;
+
+    // Check competency assessment score is valid number
+    const competencyScore = parseInt(formData.competencyAssessmentScore, 10);
+    if (isNaN(competencyScore) || competencyScore < 0 || competencyScore > 1200) return false;
+
+    // Check certificate type (must not be empty or "Select...")
+    const certType = formData.certificateType?.trim();
+    if (!certType || certType === 'Select...' || certType === '') return false;
+
+    // Check certificate score is valid number
+    const certScore = parseFloat(formData.certificateScore);
+    if (isNaN(certScore) || certScore < 0) return false;
+
+    return true;
   };
 
   const statusLabel = result
@@ -113,7 +196,7 @@ const Prediction = () => {
       <div className="prediction-content">
         <Card className="form-card">
           <h3 className="panel-title">Academic Metrics</h3>
-          <ErrorMessage message={error || universitiesError || majorsError} onClose={() => clearPrediction()} />
+          <ErrorMessage message={error || universitiesError || majorsError || certificatesError} onClose={() => clearPrediction()} />
           {universitiesLoading && <p className="uploading-note">Loading universities from server…</p>}
           <form onSubmit={handleSubmit}>
             <ScoreForm
@@ -128,12 +211,14 @@ const Prediction = () => {
               majorsLoading={majorsLoading}
               universityLocked={universityLocked}
               onUniversityLockChange={handleUniversityLockChange}
+              certificates={certificates}
+              certificatesLoading={certificatesLoading}
             />
             <button
               type="submit"
-              disabled={loading || uploading || universitiesLoading || universities.length === 0}
+              disabled={!isFormValid() || loading || uploading || universitiesLoading || certificatesLoading || !user}
               className="predict-btn"
-              title={!user ? 'Login required' : 'Predict admission probability'}
+              title={!user ? 'Login required' : !isFormValid() ? 'Please fill all fields correctly' : 'Predict admission probability'}
             >
               {loading ? <Loader message="Predicting..." /> : 'Predict Admission'}
             </button>
@@ -146,7 +231,14 @@ const Prediction = () => {
                   setTranscriptPreview('');
                   setTranscriptFile(null);
                   setUniversityLocked(false);
-                  setFormData((prev) => ({ ...prev, targetUniversity: '', major: '' }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    targetUniversity: '',
+                    major: '',
+                    competencyAssessmentScore: '',
+                    certificateType: '',
+                    certificateScore: '',
+                  }));
                 }}
                 className="clear-btn"
               >

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { predict, fetchUniversities, fetchMajors, uploadTranscript } from '../services/aiService';
+import { predict, fetchUniversities, fetchMajors, uploadTranscript, fetchCertifications } from '../services/aiService';
 
 export const usePredict = () => {
   const [result, setResult] = useState(null);
@@ -12,7 +12,11 @@ export const usePredict = () => {
   const [majors, setMajors] = useState([]);
   const [majorsLoading, setMajorsLoading] = useState(false);
   const [majorsError, setMajorsError] = useState('');
+  const [certificates, setCertificates] = useState([]);
+  const [certificatesLoading, setCertificatesLoading] = useState(true);
+  const [certificatesError, setCertificatesError] = useState('');
 
+  // Fetch universities and certificates on mount
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -40,6 +44,35 @@ export const usePredict = () => {
     };
   }, []);
 
+  // Fetch certificates on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCertificatesLoading(true);
+      setCertificatesError('');
+      try {
+        const list = await fetchCertifications();
+        if (!cancelled) {
+          // If no certificates loaded, provide fallback options
+          setCertificates(list && list.length > 0 ? list : ['IELTS', 'TOEFL', 'GRE', 'GMAT', 'Other']);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          // On error, provide fallback options instead of empty array
+          setCertificates(['IELTS', 'TOEFL', 'GRE', 'GMAT', 'Other']);
+          // Don't show error to user, just use fallback silently
+        }
+      } finally {
+        if (!cancelled) {
+          setCertificatesLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const universitiesMap = useMemo(
     () =>
       universities.reduce((acc, uni) => {
@@ -50,21 +83,47 @@ export const usePredict = () => {
   );
 
   const makePrediction = useCallback(
-    async (score, targetUniversity, file = null, major = '') => {
+    async (payload, file = null) => {
       setLoading(true);
       setError('');
+
       try {
-        const prediction = await predict({ score, targetUniversity, major, file }, universities);
+        const prediction = await predict(payload, universities, file);
+
         setResult({
-          ...prediction,
-          score,
-          targetUniversity,
+          probability: prediction.probability,
+          message: prediction.message,
+          strengths: prediction.strengths,
+          weaknesses: prediction.weaknesses,
+          targetUniversity: payload.universityName,
+          cutoffScore: prediction.cutoffScore,
+          requiredTranscriptScore: prediction.requiredTranscriptScore,
           createdAt: new Date().toISOString(),
         });
       } catch (err) {
-        const msg =
-          err.response?.data?.message || err.response?.data?.error || err.message || 'Prediction failed';
-        setError(typeof msg === 'string' ? msg : 'Prediction failed');
+        // Improved error handling for different error types
+        let errorMsg = 'Prediction failed';
+
+        if (err.response?.status === 400) {
+          // Bad request - validation error from backend
+          errorMsg = err.response?.data?.message || 
+                     err.response?.data?.error ||
+                     'Invalid data submitted. Please check all fields.';
+        } else if (err.response?.status === 500) {
+          // Server error
+          errorMsg = 'Server error. Please try again later.';
+        } else if (err.response?.data?.message) {
+          // Generic response message
+          errorMsg = err.response.data.message;
+        } else if (err.response?.data?.error) {
+          // Alternative error field
+          errorMsg = err.response.data.error;
+        } else if (err.message) {
+          // Client-side error
+          errorMsg = err.message;
+        }
+
+        setError(typeof errorMsg === 'string' ? errorMsg : 'Prediction failed. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -111,6 +170,7 @@ export const usePredict = () => {
     setError('');
     setUniversitiesError('');
     setMajorsError('');
+    setCertificatesError('');
   };
 
   return {
@@ -129,5 +189,8 @@ export const usePredict = () => {
     majorsLoading,
     majorsError,
     fetchMajorsForUniversity,
+    certificates,
+    certificatesLoading,
+    certificatesError,
   };
 };

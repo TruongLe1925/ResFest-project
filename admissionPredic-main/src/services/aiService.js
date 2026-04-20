@@ -1,43 +1,68 @@
-import { fetchUniversities, fetchMajors, uploadTranscriptImage, postAdmissionPrediction } from './api.js';
+import { fetchUniversities, fetchMajors, uploadTranscriptImage, postAdmissionPrediction, fetchCertifications } from './api.js';
 
-export { fetchUniversities, fetchMajors, uploadTranscriptImage, postAdmissionPrediction };
+export { fetchUniversities, fetchMajors, uploadTranscriptImage, postAdmissionPrediction, fetchCertifications };
 
 export const uploadTranscript = uploadTranscriptImage;
 
 /**
- * @param {{ score: number, targetUniversity: string, major?: string, file?: File | null }} data
+ * @param {{ score: number, targetUniversity: string, major: string, competencyAssessmentScore: number, certificateType: string, certificateScore: number, file?: File | null }} data
  * @param {Array<{ name: string }>} universitiesList
  */
-export async function predict(data, universitiesList) {
-  const { score, targetUniversity, major, file } = data;
+export async function predict(payload, universitiesList, file) {
+  const {
+    universityName,
+    examScore,
+    majorName,
+    competencyAssessmentScore,
+    certificateType,
+    certificateScore,
+  } = payload;
 
-  const selectedUniversity = universitiesList.find((uni) => uni.name === targetUniversity);
+  const selectedUniversity = universitiesList.find(
+    (uni) => uni.name === universityName
+  );
+
   if (!selectedUniversity) {
     throw new Error('Please select a valid university');
   }
 
-  if (Number.isNaN(score)) {
-    throw new Error('Please enter a valid exam score');
+  if (!Number.isFinite(examScore) || examScore < 0 || examScore > 30) {
+    throw new Error('Invalid exam score');
   }
 
-  if (score < 0 || score > 30) {
-    throw new Error('Invalid exam score range');
+  if (!majorName || !majorName.trim()) {
+    throw new Error('Please select a major');
+  }
+
+  if (
+    competencyAssessmentScore == null ||
+    competencyAssessmentScore < 0 ||
+    competencyAssessmentScore > 1200
+  ) {
+    throw new Error('Invalid competency assessment score');
+  }
+
+  if (!certificateType || !certificateType.trim() || certificateType === 'Select...') {
+    throw new Error('Please select a valid certificate type');
+  }
+
+  if (certificateScore == null || certificateScore < 0) {
+    throw new Error('Invalid certificate score');
   }
 
   const apiResponse = await postAdmissionPrediction(
     {
-      universityName: targetUniversity,
-      examScore: score,
-      majorName: major || '',
+      universityName,
+      examScore,
+      majorName,
+      competencyAssessmentScore,
+      certificateType,
+      certificateScore,
     },
     file ?? null
   );
 
-  if (!Number.isFinite(apiResponse.percentage)) {
-    throw new Error('Invalid response from admission prediction service');
-  }
-
-  const probability = Math.round(apiResponse.percentage);
+  const probability = Math.round(apiResponse.percentage || 0);
 
   return {
     probability,

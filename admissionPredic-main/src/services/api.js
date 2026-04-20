@@ -85,34 +85,72 @@ export async function fetchMajors(universityName) {
 }
 
 /**
+ * Fetches certificates from GET /certification.
+ * Returns the parsed list of certificate names.
+ */
+export async function fetchCertifications() {
+  const { data } = await api.get('/certification');
+  const rawList = unwrapList(data);
+  return rawList
+    .map((raw) => raw?.name ?? raw?.title ?? '')
+    .filter(Boolean);
+}
+
+/**
  * Uploads a transcript image for score extraction (POST /transcript/extract).
  * Tweak the path or `FormData` field name to match your backend.
  */
 /**
- * POST /admissin-predic — multipart: JSON part `data`, optional `file`.
+ * POST /admission-predic — multipart: JSON part `data`, optional `file`.
  * Spring @RequestPart("data") expects a JSON part (Blob with application/json).
  *
- * @param {{ universityName: string, examScore: number, transcriptScore: number }} payload
+ * @param {{ universityName: string, examScore: number, majorName: string, competencyAssessmentScore: number, certificateType: string, certificateScore: number }} payload
  * @param {File | null | undefined} file
  * @returns {Promise<{ percentage: number, feedback: string, strengths: string, weaknesses: string }>}
  */
 export async function postAdmissionPrediction(payload, file) {
+  // Validate payload before sending
+  if (!payload.universityName || !payload.majorName || !payload.certificateType) {
+    throw new Error('Missing required fields in payload');
+  }
+
+  if (!Number.isFinite(payload.examScore) || payload.examScore < 0 || payload.examScore > 30) {
+    throw new Error('Invalid exam score in payload');
+  }
+
+  if (!Number.isFinite(payload.competencyAssessmentScore) || payload.competencyAssessmentScore < 0 || payload.competencyAssessmentScore > 1200) {
+    throw new Error('Invalid competency assessment score in payload');
+  }
+
+  if (!Number.isFinite(payload.certificateScore) || payload.certificateScore < 0) {
+    throw new Error('Invalid certificate score in payload');
+  }
+
   const formData = new FormData();
-  formData.append(
-    'data',
-    new Blob([JSON.stringify(payload)], { type: 'application/json' })
-  );
+  
+  // Create JSON Blob with correct structure
+  const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  formData.append('data', jsonBlob);
+  
+  // Append file only if it's a valid File object
   if (file instanceof File) {
     formData.append('file', file);
   }
-  const { data } = await api.post('/admission-predic', formData);
-  const body = data?.data ?? data;
-  return {
-    percentage: Number(body?.percentage),
-    feedback: String(body?.feedback ?? ''),
-    strengths: String(body?.strengths ?? ''),
-    weaknesses: String(body?.weaknesses ?? ''),
-  };
+
+  try {
+    const { data } = await api.post('/admission-predic', formData);
+    const body = data?.data ?? data;
+    
+    return {
+      percentage: Number(body?.percentage ?? 0),
+      feedback: String(body?.feedback ?? ''),
+      strengths: String(body?.strengths ?? ''),
+      weaknesses: String(body?.weaknesses ?? ''),
+    };
+  } catch (err) {
+    // Re-throw with context
+    throw err;
+  }
 }
 
 export async function uploadTranscriptImage(file) {
