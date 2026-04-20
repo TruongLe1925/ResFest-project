@@ -40,7 +40,8 @@ public class ChatServiceImpl implements ChatService {
                         "1. So sánh điểm của tôi với điểm chuẩn năm trước.\n" +
                         "2. Kiểm tra hình ảnh bảng điểm đính kèm để xác thực điểm số (nếu có).\n" +
                         "3. Đưa ra dự báo khả năng trúng tuyển (Thấp/Trung bình/Cao) không trả về giá trị ậm.\n" +
-                        "4. Đưa ra lời khuyên cụ thể để tăng cơ hội vào trường",
+                        "4. Đưa ra lời khuyên cụ thể để tăng cơ hội vào trường.\n"+
+                        "5. Đưa ra dự đoán điểm chuẩn của ngành và trường trong năm nay (0-30) để so sánh với điểm của tôi.\n",
                 requestDTO.getMajorName(),
                 requestDTO.getUniversityName(),
                 requestDTO.getExamScore(),

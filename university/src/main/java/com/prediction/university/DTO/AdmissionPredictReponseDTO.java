@@ -14,4 +14,5 @@ public class AdmissionPredictReponseDTO {
     private String feedback;
     private String strengths;
     private String weaknesses;
+    private Double benchmarkPrediction;
 }
