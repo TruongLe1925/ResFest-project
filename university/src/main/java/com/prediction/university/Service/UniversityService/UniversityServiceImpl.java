@@ -1,24 +1,30 @@
 package com.prediction.university.Service.UniversityService;
 
 
+import com.prediction.university.DTO.CerDTO;
 import com.prediction.university.DTO.MajorDTO;
 import com.prediction.university.DTO.UniversityDTO;
 import com.prediction.university.Dao.UniversityDAO;
+import com.prediction.university.Entity.Certification;
 import com.prediction.university.Entity.Major;
 import com.prediction.university.Entity.University;
+import com.prediction.university.Repository.CertificationRepository;
 import com.prediction.university.Repository.UniversityRepository;
 import com.prediction.university.Service.UniversityService.UniversityService;
 import org.springframework.stereotype.Service;
 
+import java.security.cert.Certificate;
 import java.util.List;
 import java.util.stream.Collectors;
 @Service
 public class UniversityServiceImpl implements UniversityService {
-    private UniversityRepository universityRepository;
-    private UniversityDAO universityDAO;
-    public UniversityServiceImpl(UniversityRepository universityRepository,UniversityDAO universityDAO) {
+    private final UniversityRepository universityRepository;
+    private final UniversityDAO universityDAO;
+    private final CertificationRepository certificationRepository;
+    public UniversityServiceImpl(CertificationRepository certificationRepository,UniversityRepository universityRepository,UniversityDAO universityDAO) {
         this.universityRepository = universityRepository;
         this.universityDAO = universityDAO;
+        this.certificationRepository = certificationRepository;
     }
     @Override
     public List<UniversityDTO> university() {
@@ -43,5 +49,17 @@ public class UniversityServiceImpl implements UniversityService {
                         .build())
                 .collect(Collectors.toList());
         return majorDTOS;
+    }
+
+    @Override
+    public List<CerDTO> certification() {
+        List<Certification> certificate = certificationRepository.findAll();
+        if (certificate == null) {
+            return List.of();
+        }
+        return certificate.stream().map(cert -> CerDTO.builder()
+                        .name(cert.getName())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

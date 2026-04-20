@@ -24,7 +24,8 @@ services:
       timeout: 5s
       retries: 5
   app:
-    image: truongli/university:0.0.3
+    image: truongli/university:0.0.4
+>>>>>>> b895ec4b114a6cc168c5b0c2d17da411c24062f3
     container_name: university-app
     ports:
       - "8080:8080"

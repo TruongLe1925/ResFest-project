@@ -22,4 +22,11 @@ public class AdmissionPredictRequestDTO {
     private Double examScore;
     @NotBlank(message = "Tên ngành không được để trống")
     private String majorName;
+    @Min(value = 0, message = "Điểm thi không được nhỏ hơn 0")
+    @Max(value = 1200, message = "Điểm đánh giá năng lực tối đa là 1200")
+    private Integer competencyAssessmentScore;
+    @NotBlank(message = "Tên chứng chỉ không được để trống")
+    private String certificateType;
+    @Min(value = 0, message = "Điểm chứng chỉ không được nhỏ hơn 0")
+    private Double certificateScore;
 }
